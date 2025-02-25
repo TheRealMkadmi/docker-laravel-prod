@@ -1,18 +1,25 @@
-#!/usr/bin/env sh
-
+#!/bin/bash
 set -e
 
-container_mode=${CONTAINER_MODE:-"http"}
-
-if [ "${container_mode}" = "http" ]; then
-    php artisan octane:status
-elif [ "${container_mode}" = "horizon" ]; then
-    php artisan horizon:status
-elif [ "${container_mode}" = "scheduler" ]; then
-    supervisorctl status scheduler:scheduler_00
-elif [ "${container_mode}" = "worker" ]; then
-    supervisorctl status worker:worker_00
-else
-    echo "Container mode mismatched."
+# Check if nginx is running
+if ! pgrep -x "nginx" > /dev/null; then
+    echo "Nginx is not running"
     exit 1
 fi
+
+# Check if PHP processes are running
+if ! pgrep -f "php.*octane:start" > /dev/null; then
+    echo "Laravel Octane is not running"
+    exit 1
+fi
+
+# Check if application is responding
+RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost)
+if [ "$RESPONSE" != "200" ]; then
+    echo "Application returned HTTP $RESPONSE"
+    exit 1
+fi
+
+# All checks passed
+echo "Health check passed"
+exit 0
