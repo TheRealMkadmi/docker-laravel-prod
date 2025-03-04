@@ -93,7 +93,6 @@ COPY --link --chown=${WWWUSER}:${WWWUSER} deployment/healthcheck                
 COPY --link --chown=${WWWUSER}:${WWWUSER} deployment/nginx.conf                 /etc/nginx/sites-enabled/default
 
 COPY --link --chown=${WWWUSER}:${WWWUSER} deployment/minify.sh ./minify.sh
-RUN chmod +x ./minify.sh
 
 RUN chmod +x /usr/local/bin/start-container /usr/local/bin/healthcheck
 
