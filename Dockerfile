@@ -54,7 +54,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       python3 \
       python3-pip \
       python-is-python3 \
-      gnupg
+      gnupg \
+      npm
 
 RUN add-apt-repository ppa:ondrej/php -y && \
     apt-get update && \
@@ -75,6 +76,8 @@ RUN add-apt-repository ppa:ondrej/php -y && \
       php${PHP_VERSION}-swoole && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
+RUN npm install -g terser clean-css-cli
+
 # Allow nginx to bind to privileged ports
 RUN setcap 'cap_net_bind_service=+ep' /usr/sbin/nginx
 
@@ -88,6 +91,9 @@ COPY --link --chown=${WWWUSER}:${WWWUSER} deployment/php.ini                  ${
 COPY --link --chown=${WWWUSER}:${WWWUSER} deployment/start-container            /usr/local/bin/start-container
 COPY --link --chown=${WWWUSER}:${WWWUSER} deployment/healthcheck                /usr/local/bin/healthcheck
 COPY --link --chown=${WWWUSER}:${WWWUSER} deployment/nginx.conf                 /etc/nginx/sites-enabled/default
+
+COPY --link --chown=${WWWUSER}:${WWWUSER} deployment/minify.sh ./minify.sh
+RUN chmod +x ./minify.sh
 
 RUN chmod +x /usr/local/bin/start-container /usr/local/bin/healthcheck
 

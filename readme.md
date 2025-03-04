@@ -25,6 +25,8 @@ Deploying Laravel applications often involves complex orchestration with multipl
 Use this template in your project with the following Dockerfile:
 
 ```dockerfile
+# syntax=docker/dockerfile:1.4
+
 ARG WWWUSER=1000
 ARG ROOT=/var/www/html
 
@@ -38,16 +40,17 @@ ENV ROOT=${ROOT}
 WORKDIR ${ROOT}
 
 COPY --link --chown=${WWWUSER}:${WWWUSER} composer.json composer.lock ./
-RUN composer install --no-dev --no-scripts --no-progress --no-interaction
+RUN --mount=type=cache,target=/tmp/cache composer install --ignore-platform-reqs --no-interaction --no-plugins --no-scripts --prefer-dist
 
 COPY --link --chown=${WWWUSER}:${WWWUSER} . .
+
+RUN ./minify.sh
 
 RUN composer dump-autoload --optimize
 
 RUN mkdir -p storage/framework/{sessions,views,cache,testing} storage/logs bootstrap/cache && \
     chmod -R 777 storage bootstrap/cache ${ROOT}/public && \
-    chown -R ${WWWUSER}:${WWWUSER} . && \
-    chmod 777 storage/
+    chown -R ${WWWUSER}:${WWWUSER} .
 
 ENV WITH_HORIZON=false \
     WITH_SCHEDULER=true \
