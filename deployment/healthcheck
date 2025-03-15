@@ -1,25 +1,145 @@
 #!/bin/bash
 set -e
 
+# Function to log health check information
+log_health() {
+    echo "$(date +"%Y-%m-%d %H:%M:%S") - HEALTHCHECK: $1"
+}
+
+# Function to check a specific service
+check_service() {
+    service_name=$1
+    check_command=$2
+    
+    log_health "Checking $service_name..."
+    if eval "$check_command"; then
+        log_health "✅ $service_name is running"
+        return 0
+    else
+        log_health "❌ $service_name is not running"
+        return 1
+    fi
+}
+
 # Check if nginx is running
-if ! pgrep -x "nginx" > /dev/null; then
-    echo "Nginx is not running"
-    exit 1
-fi
+check_nginx() {
+    check_service "Nginx" "pgrep -x 'nginx' > /dev/null"
+}
 
 # Check if PHP processes are running
-if ! pgrep -f "php.*octane:start" > /dev/null; then
-    echo "Laravel Octane is not running"
+check_php() {
+    check_service "Laravel Octane" "pgrep -f 'php.*octane:start' > /dev/null"
+}
+
+# Check if supervisor is running correctly
+check_supervisor() {
+    check_service "Supervisor" "pgrep -x 'supervisord' > /dev/null"
+}
+
+# Enhanced HTTP response check with detailed diagnostics for 502 errors
+check_http() {
+    log_health "Checking HTTP response..."
+    
+    # Use curl with detailed error reporting
+    CURL_RESULT=$(curl -sS -o /tmp/http_response -w "%{http_code}|%{time_total}|%{time_connect}|%{time_starttransfer}" http://localhost/ || echo "000|0|0|0")
+    
+    # Parse curl result
+    HTTP_CODE=$(echo $CURL_RESULT | cut -d'|' -f1)
+    TIME_TOTAL=$(echo $CURL_RESULT | cut -d'|' -f2)
+    TIME_CONNECT=$(echo $CURL_RESULT | cut -d'|' -f3)
+    TIME_START_TRANSFER=$(echo $CURL_RESULT | cut -d'|' -f4)
+    
+    if [ "$HTTP_CODE" = "200" ]; then
+        log_health "✅ Application returned HTTP 200 (Time: ${TIME_TOTAL}s, Connect: ${TIME_CONNECT}s)"
+        return 0
+    else
+        log_health "❌ Application returned HTTP $HTTP_CODE (Time: ${TIME_TOTAL}s, Connect: ${TIME_CONNECT}s)"
+        
+        # Comprehensive diagnostics for errors
+        log_health "📊 Performing in-depth diagnostics..."
+        
+        # System resources
+        log_health "Memory usage:"
+        free -m | grep -v total
+        
+        log_health "Disk usage:"
+        df -h / | tail -1
+        
+        log_health "CPU load:"
+        uptime
+        
+        # Process diagnostics
+        log_health "Supervisor status:"
+        supervisorctl status all
+        
+        log_health "PHP processes:"
+        ps aux | grep php | grep -v grep
+        
+        log_health "Swoole/Octane processes:"
+        ps aux | grep swoole | grep -v grep
+        
+        # Network diagnostics
+        log_health "Checking localhost connectivity:"
+        nc -zv localhost 8000 2>&1 || echo "Connection failed"
+        
+        # Log inspections
+        log_health "Last 10 errors from Octane:"
+        supervisorctl tail -1000 octane stderr | grep -i "error\|exception\|fatal" | tail -10 || echo "No recent errors found"
+        
+        log_health "Last 10 errors from Nginx:"
+        supervisorctl tail -1000 nginx stderr | grep -i "error\|warning" | tail -10 || echo "No recent errors found"
+        
+        # Check for 502 specific issues
+        if [ "$HTTP_CODE" = "502" ]; then
+            log_health "⚠️ 502 Bad Gateway detected - Specific diagnostics:"
+            log_health "1. Testing direct connection to Octane:"
+            curl -sS -I http://localhost:8000/ || echo "Failed to connect directly to Octane"
+            
+            log_health "2. Checking Octane socket status:"
+            netstat -anp | grep 8000 || echo "No process listening on port 8000"
+            
+            log_health "3. Checking for recent restarts:"
+            supervisorctl status octane | grep -o "RUNNING\|STARTING\|BACKOFF\|STOPPING\|STOPPED\|FATAL\|UNKNOWN"
+            
+            log_health "4. Last 20 supervisor state changes:"
+            grep "spawned\|exited\|entered RUNNING state" /tmp/supervisord.log 2>/dev/null | tail -20 || echo "No supervisor log found"
+        fi
+        
+        return 1
+    fi
+}
+
+# Run all checks with detailed output
+log_health "Starting comprehensive health checks"
+
+FAILED=0
+
+check_supervisor || FAILED=1
+check_nginx || FAILED=1
+check_php || FAILED=1
+check_http || FAILED=1
+
+# Final result with enhanced reporting
+if [ $FAILED -eq 0 ]; then
+    log_health "✅ All health checks passed"
+    # Record successful check for trending
+    echo "$(date +%s) OK" >> /tmp/health_history.log
+    exit 0
+else
+    log_health "❌ One or more health checks failed"
+    # Record failed check for trending
+    echo "$(date +%s) FAIL" >> /tmp/health_history.log
+    
+    # Show failure trend
+    log_health "Health check success rate (last 10 checks):"
+    SUCCESS_COUNT=$(tail -10 /tmp/health_history.log 2>/dev/null | grep -c "OK" || echo "0")
+    TOTAL=$(tail -10 /tmp/health_history.log 2>/dev/null | wc -l || echo "0")
+    if [ "$TOTAL" -gt "0" ]; then
+        SUCCESS_RATE=$((SUCCESS_COUNT * 100 / TOTAL))
+        log_health "Success rate: ${SUCCESS_RATE}% (${SUCCESS_COUNT}/${TOTAL})"
+    else
+        log_health "No previous health check data available"
+    fi
+    
     exit 1
 fi
-
-# Check if application is responding
-RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost)
-if [ "$RESPONSE" != "200" ]; then
-    echo "Application returned HTTP $RESPONSE"
-    exit 1
-fi
-
-# All checks passed
-echo "Health check passed"
-exit 0

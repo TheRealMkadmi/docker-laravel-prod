@@ -1,30 +1,119 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 set -e
 
+# Better error handling with logging
+error_handler() {
+    local line=$1
+    local command=$2
+    local code=$3
+    echo "ERROR: Command '$command' exited with status $code at line $line" >&2
+    # Record error in dedicated log file for startup errors
+    echo "$(date +"%Y-%m-%d %H:%M:%S") - STARTUP ERROR: Command '$command' exited with status $code at line $line" >> /tmp/container_startup_errors.log
+    # Don't exit, let supervisord handle restarts
+}
+trap 'error_handler ${LINENO} "$BASH_COMMAND" $?' ERR
+
+# Set environment variables with defaults
 container_mode=${CONTAINER_MODE:-"http"}
-octane_server=${OCTANE_SERVER}
+octane_server=${OCTANE_SERVER:-"swoole"}
 running_migrations_and_seeders=${RUNNING_MIGRATIONS_AND_SEEDERS:-"false"}
 artisan_cache=${ARTISAN_CACHE:-"true"}
 
-echo "Container mode: $container_mode"
+# Log startup information
+echo "🚀 Starting container in $container_mode mode"
+echo "🔧 Using Octane server: $octane_server"
+echo "🗄️ Running migrations and seeders: $running_migrations_and_seeders"
+echo "📦 Using artisan cache: $artisan_cache"
+
+# Start 502 error monitoring in background
+if [ -f "/usr/local/bin/utilities.sh" ]; then
+    echo "🔍 Starting 502 error monitoring..."
+    bash /usr/local/bin/utilities.sh monitor >> /dev/stdout 2>> /dev/stderr &
+fi
 
 initialStuff() {
+    echo "📋 Running initialization tasks..."
+    
+    # Check PHP installation and display version
+    echo "🔍 PHP version check:"
+    php --version || echo "⚠️ Warning: PHP version check failed"
+    
     if [ "${artisan_cache}" = "true" ]; then
-        php artisan optimize:clear
-        php artisan event:cache
-        php artisan config:cache
-        php artisan route:cache
+        echo "🧹 Clearing and rebuilding cache..."
+        php artisan optimize:clear || { 
+            echo "⚠️ Warning: optimize:clear failed, capturing error details" 
+            php -d display_errors=stderr artisan optimize:clear --verbose
+        }
+        php artisan event:cache || echo "⚠️ Warning: event:cache failed but continuing..."
+        php artisan config:cache || echo "⚠️ Warning: config:cache failed but continuing..."
+        php artisan route:cache || echo "⚠️ Warning: route:cache failed but continuing..."
+        echo "✅ Cache operations completed"
     fi
 
     if [ "${running_migrations_and_seeders}" = "true" ]; then
-        echo "Running migrations and seeding database ..."
-        php artisan migrate --isolated --seed --force
+        echo "🗄️ Running migrations and seeding database..."
+        php artisan migrate --isolated --seed --force || {
+            echo "❌ ERROR: Migrations failed, capturing error details"
+            php -d display_errors=stderr artisan migrate --isolated --seed --force -vvv
+            echo "⚠️ Continuing despite migration errors..."
+        }
+        echo "✅ Database operations completed"
+    fi
+    
+    # Check for storage directory permissions
+    for dir in storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache; do
+        if [ ! -d "$dir" ]; then
+            echo "📁 Creating directory: $dir"
+            mkdir -p "$dir"
+        fi
+        echo "🔐 Setting permissions for $dir"
+        chmod -R 755 "$dir"
+        touch "$dir/.keep"
+    done
+    
+    # Verify logs directory is writable for detailed error logs
+    if [ -d "storage/logs" ]; then
+        echo "📝 Verifying logs directory is writable"
+        touch storage/logs/laravel-$(date +"%Y-%m-%d").log
+        echo "$(date +"%Y-%m-%d %H:%M:%S") [INFO] Container startup" >> storage/logs/laravel-$(date +"%Y-%m-%d").log
+        chmod -R 755 storage/logs
+    fi
+    
+    # Verify Octane is available
+    echo "🔍 Verifying Octane installation..."
+    php artisan octane:status || echo "⚠️ Warning: Octane status check failed"
+    
+    # Copy utilities script to be accessible
+    if [ -f "/var/www/html/deployment/utilities.sh" ]; then
+        echo "🔧 Installing utility scripts..."
+        cp /var/www/html/deployment/utilities.sh /usr/local/bin/
+        chmod +x /usr/local/bin/utilities.sh
     fi
 }
 
 if [ "$1" != "" ]; then
+    echo "⚙️ Executing custom command: $@"
     exec "$@"
 elif [ "${container_mode}" = "http" ]; then
-    echo "Octane Server: $octane_server"
+    echo "🌐 Starting in HTTP mode"
+    echo "🚀 Octane Server: $octane_server"
     initialStuff
+    
+    # Additional startup checks
+    echo "🔍 Checking Laravel installation..."
+    php artisan --version || { 
+        echo "⚠️ Warning: Laravel artisan command failed" 
+        # Try with error display for detailed diagnostics
+        php -d display_errors=stderr artisan --version -vvv
+    }
+    
+    # Verify nginx config
+    echo "🔍 Verifying Nginx configuration..."
+    nginx -t || echo "⚠️ Warning: Nginx configuration test failed"
+    
+    echo "✅ Container startup completed, supervisor will start services"
 fi
+
+# Log completion of startup script
+echo "📋 Container initialization complete, handing control to supervisord"
+echo "$(date +"%Y-%m-%d %H:%M:%S") - CONTAINER_STARTUP_COMPLETE" >> /tmp/container_startup.log

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Server Error</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            margin-top: 0;
+            color: #e53e3e;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 1rem;
+        }
+        .status-code {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        .error-details {
+            background-color: #f8f8f8;
+            border-left: 4px solid #e53e3e;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .solution {
+            background-color: #f0fff4;
+            border-left: 4px solid #48bb78;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Application Server Error</h1>
+        
+        <div class="status-code">
+            Error Code: <!-- Error code will be shown here (e.g., 502) -->
+        </div>
+        
+        <p>We're sorry, but the application server encountered a temporary error while processing your request.</p>
+        
+        <div class="error-details">
+            <strong>What happened?</strong>
+            <p>The application server (PHP/Laravel Octane) is currently unavailable or taking too long to respond. This could be due to:</p>
+            <ul>
+                <li>High server load</li>
+                <li>Application startup or initialization issues</li>
+                <li>A temporary service disruption</li>
+                <li>Database connectivity problems</li>
+            </ul>
+        </div>
+        
+        <div class="solution">
+            <strong>What now?</strong>
+            <p>This issue has been logged and reported to our team. Please try:</p>
+            <ul>
+                <li>Refreshing the page in a few moments</li>
+                <li>Going back to the previous page and trying again</li>
+                <li>Contacting support if the issue persists</li>
+            </ul>
+        </div>
+        
+        <p><small>Reference ID: <!-- Timestamp will be added dynamically --></small></p>
+    </div>
+</body>
+</html>

@@ -78,6 +78,12 @@ RUN add-apt-repository ppa:ondrej/php -y && \
 
 RUN npm install -g terser clean-css-cli
 
+# Install supervisor_stdout for improved logging
+RUN pip install supervisor-stdout
+
+# Create directory for error pages
+RUN mkdir -p /usr/share/nginx/html
+
 # Allow nginx to bind to privileged ports
 RUN setcap 'cap_net_bind_service=+ep' /usr/sbin/nginx
 
@@ -91,6 +97,11 @@ COPY --link --chown=${WWWUSER}:${WWWUSER} deployment/php.ini                  ${
 COPY --link --chown=${WWWUSER}:${WWWUSER} deployment/start-container            /usr/local/bin/start-container
 COPY --link --chown=${WWWUSER}:${WWWUSER} deployment/healthcheck                /usr/local/bin/healthcheck
 COPY --link --chown=${WWWUSER}:${WWWUSER} deployment/nginx.conf                 /etc/nginx/sites-enabled/default
+COPY --link --chown=${WWWUSER}:${WWWUSER} deployment/50x.html                   /usr/share/nginx/html/50x.html
+
+# Configure nginx error logging to stderr
+RUN sed -i 's/error_log \/var\/log\/nginx\/error.log;/error_log \/dev\/stderr;/' /etc/nginx/nginx.conf && \
+    sed -i 's/access_log \/var\/log\/nginx\/access.log;/access_log \/dev\/stdout;/' /etc/nginx/nginx.conf
 
 RUN chmod +x /usr/local/bin/start-container /usr/local/bin/healthcheck
 
