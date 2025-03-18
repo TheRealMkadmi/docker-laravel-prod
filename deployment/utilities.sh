@@ -1,7 +1,7 @@
 #!/bin/bash
 # Error diagnostics utilities for Docker container
 
-# Enable error handling and exit on error
+# Enable error handling
 set -e
 
 # Log with timestamp and category
@@ -11,22 +11,34 @@ log() {
   echo "$(date +'%Y-%m-%d %H:%M:%S') [$level] $message"
 }
 
+# Ensure required directories exist
+ensure_dirs() {
+  log "INFO" "Ensuring required directories exist"
+  
+  # Create directories for logs and socket files
+  for dir in /var/log/supervisor /var/run/supervisor /tmp/nginx_logs; do
+    if [ ! -d "$dir" ]; then
+      log "INFO" "Creating directory: $dir"
+      mkdir -p "$dir"
+      chmod -R 755 "$dir"
+    fi
+  done
+  
+  # Create log files if they don't exist
+  touch /tmp/error_502_history.log 2>/dev/null || log "WARN" "Could not create error history log"
+  
+  log "INFO" "Directory check complete"
+}
+
 # Monitor and log 502 errors by checking Nginx access logs
 monitor_502_errors() {
   log "INFO" "Starting 502 error monitoring..."
   
-  # Create fifo for log streaming
-  FIFO_PATH="/tmp/nginx_log_fifo"
-  if [ ! -p "$FIFO_PATH" ]; then
-    mkfifo "$FIFO_PATH"
-  fi
+  # Ensure directories exist first
+  ensure_dirs
   
-  # Redirect nginx access log to fifo
-  tail -f /dev/stdout | grep -i '502' > "$FIFO_PATH" &
-  TAIL_PID=$!
-  
-  # Read from fifo and process 502 errors
-  while read -r line; do
+  # Simple grep for 502 errors in nginx logs
+  tail -f /dev/stdout | grep --line-buffered -i '502' | while read -r line; do
     log "ERROR" "502 Bad Gateway detected"
     log "DEBUG" "Access log entry: $line"
     
@@ -43,11 +55,11 @@ monitor_502_errors() {
     
     # Supervisor status
     log "DEBUG" "=== Supervisor Status ==="
-    supervisorctl status all
+    supervisorctl status all || log "ERROR" "Failed to get supervisor status"
     
     # Recent logs
     log "DEBUG" "=== Recent Octane Errors ==="
-    supervisorctl tail octane stderr 100 | grep -i 'error\|exception\|fatal' | tail -20
+    supervisorctl tail octane stderr 100 | grep -i 'error\|exception\|fatal' | tail -20 || log "WARN" "Could not retrieve octane errors"
     
     # Memory usage
     log "DEBUG" "=== Memory Status ==="
@@ -57,10 +69,7 @@ monitor_502_errors() {
     
     # Add to 502 error history for trend analysis
     echo "$(date +'%s') 502" >> /tmp/error_502_history.log
-  done < "$FIFO_PATH"
-  
-  # Cleanup
-  kill $TAIL_PID
+  done
 }
 
 # Check if Octane is running and responding
@@ -68,7 +77,7 @@ check_octane() {
   log "INFO" "Checking Octane status..."
   
   # Direct request to Octane
-  HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/)
+  HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/ 2>/dev/null || echo "Connection failed")
   
   if [ "$HTTP_CODE" = "200" ]; then
     log "INFO" "Octane is responding correctly (HTTP 200)"
@@ -92,10 +101,17 @@ check_octane() {
 recover_from_errors() {
   log "INFO" "Running error recovery procedures..."
   
+  # Ensure directories exist
+  ensure_dirs
+  
   # Check for common error patterns
   if ! check_octane; then
     log "WARN" "Attempting to restart Octane..."
-    supervisorctl restart octane
+    supervisorctl restart octane || {
+      log "ERROR" "Failed to restart Octane via supervisorctl"
+      return 1
+    }
+    
     sleep 5
     
     if check_octane; then
@@ -108,7 +124,7 @@ recover_from_errors() {
   # Check Nginx
   if ! pgrep -x "nginx" > /dev/null; then
     log "WARN" "Nginx not found, attempting restart..."
-    supervisorctl restart nginx
+    supervisorctl restart nginx || log "ERROR" "Failed to restart nginx"
     sleep 2
   fi
 }
@@ -125,8 +141,11 @@ main() {
     recover)
       recover_from_errors
       ;;
+    ensure_dirs)
+      ensure_dirs
+      ;;
     *)
-      log "INFO" "Usage: $0 {monitor|check|recover}"
+      log "INFO" "Usage: $0 {monitor|check|recover|ensure_dirs}"
       exit 1
       ;;
   esac
@@ -136,14 +155,6 @@ main() {
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   main "$@"
 fi
-
-tinker() {
-  if [ -z "$1" ]; then
-    php artisan tinker
-  else
-    php artisan tinker --execute="\"dd($1);\""
-  fi
-}
 
 # Commonly used aliases
 alias ..="cd .."

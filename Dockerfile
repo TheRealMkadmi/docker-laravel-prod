@@ -78,11 +78,14 @@ RUN add-apt-repository ppa:ondrej/php -y && \
 
 RUN npm install -g terser clean-css-cli
 
-# Install supervisor_stdout for improved logging
+# Install supervisor-stdout for improved logging
 RUN pip install supervisor-stdout
 
 # Create directory for error pages
 RUN mkdir -p /usr/share/nginx/html
+
+# Create required directories for supervisor
+RUN mkdir -p /var/log/supervisor /var/run/supervisor
 
 # Allow nginx to bind to privileged ports
 RUN setcap 'cap_net_bind_service=+ep' /usr/sbin/nginx
