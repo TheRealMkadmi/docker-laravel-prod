@@ -1,0 +1,2 @@
+#!/usr/bin/with-contenv sh
+exec php $ENV_ROOT/artisan reverb:start --host=127.0.0.1 --port=9000

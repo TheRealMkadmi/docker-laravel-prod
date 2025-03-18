@@ -1,0 +1,18 @@
+#!/usr/bin/with-contenv sh
+set -e
+
+echo "Checking for critical errors during initialization..."
+
+# Example: Check if required directories exist
+if [ ! -d "/var/log/octane" ]; then
+    echo "Error: /var/log/octane directory is missing!" >&2
+    exit 1
+fi
+
+# Example: Check if required services are running
+if ! pgrep -x "nginx" > /dev/null; then
+    echo "Error: Nginx is not running!" >&2
+    exit 1
+fi
+
+echo "Initialization checks passed successfully."

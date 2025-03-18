@@ -31,10 +31,6 @@ check_php() {
     check_service "Laravel Octane" "pgrep -f 'php.*octane:start' > /dev/null"
 }
 
-# Check if supervisor is running correctly
-check_supervisor() {
-    check_service "Supervisor" "pgrep -x 'supervisord' > /dev/null"
-}
 
 # Enhanced HTTP response check with detailed diagnostics for 502 errors
 check_http() {

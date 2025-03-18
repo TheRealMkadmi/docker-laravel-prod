@@ -16,7 +16,7 @@ ensure_dirs() {
   log "INFO" "Ensuring required directories exist"
   
   # Create directories for logs and socket files
-  for dir in /var/log/supervisor /var/run/supervisor /tmp/nginx_logs; do
+  for dir in /tmp/nginx_logs; do
     if [ ! -d "$dir" ]; then
       log "INFO" "Creating directory: $dir"
       mkdir -p "$dir"

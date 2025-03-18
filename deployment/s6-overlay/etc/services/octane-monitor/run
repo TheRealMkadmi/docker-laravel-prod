@@ -1,0 +1,15 @@
+#!/usr/bin/with-contenv sh
+
+# Exit if octane service is down
+if ! s6-svstat /var/run/s6/services/octane; then
+    echo "Octane service is down!"
+    s6-svc -r /var/run/s6/services/octane
+fi
+
+# Check if port 8000 is responding
+if ! nc -z localhost 8000; then
+    echo "Octane port 8000 is not responding!"
+    s6-svc -r /var/run/s6/services/octane
+fi
+
+sleep 30

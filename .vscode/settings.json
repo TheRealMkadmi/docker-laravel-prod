@@ -1,0 +1,16 @@
+{
+    // Define a minimal PowerShell profile that passes -NoProfile
+    "terminal.integrated.profiles.windows": {
+      "Minimal PowerShell": {
+        "source": "PowerShell",
+        "args": ["-NoProfile"]
+      },
+      // Remove unwanted built-in profiles:
+      "Git Bash": null,
+      "Command Prompt": null
+    },
+    // Set your minimal profile as the default:
+    "terminal.integrated.defaultProfile.windows": "Minimal PowerShell",
+    // If using the PowerShell extension, disable its own profile loading:
+    "powershell.enableProfileLoading": false
+}

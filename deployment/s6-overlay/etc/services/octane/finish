@@ -1,0 +1,10 @@
+#!/usr/bin/with-contenv sh
+
+# Send SIGTERM to any remaining octane processes
+pkill -f "php.*octane:start" || true
+
+# Wait briefly for graceful shutdown
+sleep 2
+
+# Force kill if still running
+pkill -9 -f "php.*octane:start" || true
