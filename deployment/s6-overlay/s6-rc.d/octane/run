@@ -1,0 +1,6 @@
+#!/usr/bin/with-contenv bash
+set -e
+
+cd ${ROOT}
+echo "Starting Laravel Octane with Swoole server..."
+exec php artisan octane:start --server=swoole --host=0.0.0.0 --port=8000 --workers=4 --task-workers=6 --max-requests=500
