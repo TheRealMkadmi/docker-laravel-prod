@@ -1,2 +1,6 @@
-#!/command/execlineb -P
-exec php $ENV_ROOT/artisan pulse:check
+#!/usr/bin/with-contenv bash
+set -e
+
+cd ${ROOT}
+echo "Running Laravel Pulse checks..."
+php artisan pulse:check

@@ -1,2 +1,6 @@
-#!/command/execlineb -P
-exec php $ENV_ROOT/artisan pulse:work
+#!/usr/bin/with-contenv bash
+set -e
+
+cd ${ROOT}
+echo "Starting Laravel Pulse worker..."
+php artisan pulse:work
