@@ -1,2 +1,2 @@
-#!/usr/bin/with-contenv sh
+#!/command/execlineb -P
 exec php $ENV_ROOT/artisan pulse:check

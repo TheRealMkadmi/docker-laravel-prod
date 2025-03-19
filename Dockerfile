@@ -2,7 +2,7 @@
 
 ARG PHP_VERSION=8.4
 ARG APP_ENV
-ARG S6_OVERLAY_VERSION=3.1.6.2
+ARG S6_OVERLAY_VERSION=3.2.0.2
 
 # Build the base image with PHP and system dependencies
 FROM ubuntu:22.04 AS base
@@ -19,7 +19,6 @@ ENV PHP_INI_DIR=/etc/php/${PHP_VERSION}/cli
 
 # S6 Overlay Environment Variables
 ENV S6_KEEP_ENV=1 \
-    S6_BEHAVIOUR_IF_STAGE2_FAILS=2 \
     S6_CMD_WAIT_FOR_SERVICES_MAXTIME=30000 \
     S6_OVERLAY_VERSION=${S6_OVERLAY_VERSION}
 
@@ -96,18 +95,13 @@ RUN --mount=type=cache,target=/tmp/cache apt-get update \
     && mv composer.phar /usr/local/bin/composer
 
 # Copy configuration files
-COPY --link --chown=${WWWUSER}:${WWWUSER} deployment/php.ini                  ${PHP_INI_DIR}/conf.d/99-octane.ini
-COPY --link --chown=${WWWUSER}:${WWWUSER} deployment/start-container            /usr/local/bin/start-container
-COPY --link --chown=${WWWUSER}:${WWWUSER} deployment/healthcheck                /usr/local/bin/healthcheck
-COPY --link --chown=${WWWUSER}:${WWWUSER} deployment/nginx.conf                 /etc/nginx/sites-enabled/default
-COPY --link --chown=${WWWUSER}:${WWWUSER} deployment/s6-overlay/               /etc/
-
-# Make sure all service scripts are executable
-RUN chmod +x /usr/local/bin/start-container /usr/local/bin/healthcheck \
-    && find /etc -path "*/s6-rc.d/*" -name run -type f -exec chmod +x {} \; \
-    && find /etc -path "*/services.d/*" -name run -type f -exec chmod +x {} \;
+COPY --link --chown=${WWWUSER}:${WWWUSER}             deployment/php.ini          ${PHP_INI_DIR}/conf.d/99-octane.ini
+COPY --link --chown=${WWWUSER}:${WWWUSER} --chmod=755 deployment/start-container  /usr/local/bin/start-container
+COPY --link --chown=${WWWUSER}:${WWWUSER} --chmod=755 deployment/healthcheck      /usr/local/bin/healthcheck
+COPY --link --chown=${WWWUSER}:${WWWUSER}             deployment/nginx.conf       /etc/nginx/sites-enabled/default
+COPY --link                               --chmod=755 deployment/s6-overlay/      /etc/s6-overlay/
 
 EXPOSE 80
 
-ENTRYPOINT ["/init"]
+ENTRYPOINT ["start-container"]
 HEALTHCHECK --start-period=120s --interval=20s --timeout=10s --retries=3 CMD healthcheck || exit 1

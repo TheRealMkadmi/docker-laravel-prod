@@ -1,2 +1,0 @@
-#!/usr/bin/execlineb -P
-s6-log n10 s1000000 T /var/log/octane
