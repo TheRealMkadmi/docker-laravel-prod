@@ -2,4 +2,5 @@
 fdmove -c 2 1
 with-contenv
 cd /var/www/html
-php artisan schedule:work
+pipeline { php artisan schedule:work }
+/usr/local/bin/logger.sh SCHEDULER INFO

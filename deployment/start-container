@@ -6,40 +6,45 @@ container_mode=${CONTAINER_MODE:-"http"}
 running_migrations_and_seeders=${RUNNING_MIGRATIONS_AND_SEEDERS:-"false"}
 artisan_cache=${ARTISAN_CACHE:-"true"}
 
+# Log startup information with enhanced logging
+log() {
+    /usr/local/bin/logger.sh CONTAINER "$1" "$2"
+}
+
 # Log startup information
-echo "🚀 Starting container in $container_mode mode"
-echo "🗄️ Running migrations and seeders: $running_migrations_and_seeders"
-echo "📦 Using artisan cache: $artisan_cache"
+log "INFO" "Starting container in $container_mode mode"
+log "INFO" "Running migrations and seeders: $running_migrations_and_seeders"
+log "INFO" "Using artisan cache: $artisan_cache"
 
 initialStuff() {
-    echo "📋 Running initialization tasks..."
+    log "INFO" "Running initialization tasks..."
     
     # Check PHP installation and display version
-    echo "🔍 PHP version check:"
-    php --version || echo "⚠️ Warning: PHP version check failed"
+    log "INFO" "PHP version check:"
+    php --version 2>&1 | while read line; do log "INFO" "$line"; done || log "WARN" "PHP version check failed"
     
     if [ "${artisan_cache}" = "true" ]; then
-        echo "🧹 Clearing and rebuilding cache..."
-        php artisan optimize:clear
-        php artisan event:cache
-        php artisan config:cache
-        php artisan route:cache
-        echo "✅ Cache operations completed"
+        log "INFO" "Clearing and rebuilding cache..."
+        php artisan optimize:clear 2>&1 | while read line; do log "INFO" "$line"; done
+        php artisan event:cache 2>&1 | while read line; do log "INFO" "$line"; done
+        php artisan config:cache 2>&1 | while read line; do log "INFO" "$line"; done
+        php artisan route:cache 2>&1 | while read line; do log "INFO" "$line"; done
+        log "INFO" "Cache operations completed"
     fi
 
     if [ "${running_migrations_and_seeders}" = "true" ]; then
-        echo "🗄️ Running migrations and seeding database..."
-        php artisan migrate --isolated --seed --force
-        echo "✅ Database operations completed"
+        log "INFO" "Running migrations and seeding database..."
+        php artisan migrate --isolated --seed --force 2>&1 | while read line; do log "INFO" "$line"; done
+        log "INFO" "Database operations completed"
     fi
     
     # Check for storage directory permissions
     for dir in storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache; do
         if [ ! -d "$dir" ]; then
-            echo "📁 Creating directory: $dir"
+            log "INFO" "Creating directory: $dir"
             mkdir -p "$dir"
         fi
-        echo "🔐 Setting permissions for $dir"
+        log "INFO" "Setting permissions for $dir"
         chmod -R 755 "$dir"
         touch "$dir/.keep"
     done

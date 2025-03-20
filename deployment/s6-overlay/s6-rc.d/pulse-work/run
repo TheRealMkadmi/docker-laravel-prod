@@ -2,4 +2,5 @@
 fdmove -c 2 1
 with-contenv
 cd /var/www/html
-php artisan pulse:work
+pipeline { php artisan pulse:work }
+/usr/local/bin/logger.sh PULSE-WORK INFO

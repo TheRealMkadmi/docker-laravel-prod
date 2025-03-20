@@ -4,11 +4,11 @@
 # Enable error handling
 set -e
 
-# Log with timestamp and category
+# Log with timestamp and category using our standardized logger
 log() {
   local level="$1"
   local message="$2"
-  echo "$(date +'%Y-%m-%d %H:%M:%S') [$level] $message"
+  /usr/local/bin/logger.sh UTILITIES "$level" "$message"
 }
 
 # Ensure required directories exist
@@ -47,23 +47,33 @@ monitor_502_errors() {
     
     # Process state
     log "DEBUG" "=== Process Status ==="
-    ps aux | grep -E 'nginx|php|swoole|supervis' | grep -v grep
+    ps aux | grep -E 'nginx|php|swoole|supervis' | grep -v grep | while read -r pline; do
+      log "DEBUG" "$pline"
+    done
     
     # Socket state
     log "DEBUG" "=== Socket Status ==="
-    netstat -tunlp | grep -E '80|8000'
+    netstat -tunlp | grep -E '80|8000' | while read -r sline; do
+      log "DEBUG" "$sline"
+    done
     
     # Supervisor status
     log "DEBUG" "=== Supervisor Status ==="
-    supervisorctl status all || log "ERROR" "Failed to get supervisor status"
+    supervisorctl status all 2>&1 | while read -r sstatus; do
+      log "DEBUG" "$sstatus"
+    done || log "ERROR" "Failed to get supervisor status"
     
     # Recent logs
     log "DEBUG" "=== Recent Octane Errors ==="
-    supervisorctl tail octane stderr 100 | grep -i 'error\|exception\|fatal' | tail -20 || log "WARN" "Could not retrieve octane errors"
+    supervisorctl tail octane stderr 100 2>/dev/null | grep -i 'error\|exception\|fatal' | tail -20 | while read -r oline; do 
+      log "DEBUG" "$oline"
+    done || log "WARN" "Could not retrieve octane errors"
     
     # Memory usage
     log "DEBUG" "=== Memory Status ==="
-    free -m
+    free -m | while read -r mline; do
+      log "DEBUG" "$mline"
+    done
     
     log "INFO" "Diagnostics captured for 502 error"
     
@@ -88,7 +98,9 @@ check_octane() {
     # Check process
     if pgrep -f "php.*octane:start" > /dev/null; then
       log "DEBUG" "Octane process exists but is not responding correctly"
-      ps aux | grep -f "php.*octane:start" | grep -v grep
+      ps aux | grep -f "php.*octane:start" | grep -v grep | while read -r line; do
+        log "DEBUG" "$line"
+      done
     else
       log "ERROR" "No Octane process found"
     fi
@@ -107,7 +119,9 @@ recover_from_errors() {
   # Check for common error patterns
   if ! check_octane; then
     log "WARN" "Attempting to restart Octane..."
-    supervisorctl restart octane || {
+    supervisorctl restart octane 2>&1 | while read -r line; do
+      log "INFO" "$line"
+    done || {
       log "ERROR" "Failed to restart Octane via supervisorctl"
       return 1
     }
@@ -124,7 +138,9 @@ recover_from_errors() {
   # Check Nginx
   if ! pgrep -x "nginx" > /dev/null; then
     log "WARN" "Nginx not found, attempting restart..."
-    supervisorctl restart nginx || log "ERROR" "Failed to restart nginx"
+    supervisorctl restart nginx 2>&1 | while read -r line; do
+      log "INFO" "$line"
+    done || log "ERROR" "Failed to restart nginx"
     sleep 2
   fi
 }

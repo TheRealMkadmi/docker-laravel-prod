@@ -20,7 +20,8 @@ ENV PHP_INI_DIR=/etc/php/${PHP_VERSION}/cli
 # S6 Overlay Environment Variables
 ENV S6_KEEP_ENV=1 \
     S6_CMD_WAIT_FOR_SERVICES_MAXTIME=30000 \
-    S6_OVERLAY_VERSION=${S6_OVERLAY_VERSION}
+    S6_OVERLAY_VERSION=${S6_OVERLAY_VERSION} \
+    S6_LOGGING=1
 
 ENV DEBIAN_FRONTEND=noninteractive \
     TERM=xterm-color \
@@ -103,6 +104,8 @@ RUN tar -C / -Jxpf /tmp/s6-overlay-x86_64.tar.xz
 COPY --link --chown=${WWWUSER}:${WWWUSER}             deployment/php.ini          ${PHP_INI_DIR}/conf.d/99-octane.ini
 COPY --link --chown=${WWWUSER}:${WWWUSER} --chmod=755 deployment/start-container  /usr/local/bin/start-container
 COPY --link --chown=${WWWUSER}:${WWWUSER} --chmod=755 deployment/healthcheck      /usr/local/bin/healthcheck
+COPY --link --chown=${WWWUSER}:${WWWUSER} --chmod=755 deployment/logger.sh        /usr/local/bin/logger.sh
+COPY --link --chown=${WWWUSER}:${WWWUSER} --chmod=755 deployment/utilities.sh     /usr/local/bin/utilities.sh
 COPY --link --chown=${WWWUSER}:${WWWUSER}             deployment/nginx.conf       /etc/nginx/sites-enabled/default
 COPY --link                               --chmod=755 deployment/s6-overlay/      /etc/s6-overlay/
 RUN for file in /etc/s6-overlay/*/*; do \
@@ -112,5 +115,5 @@ done
 
 EXPOSE 80
 
-ENTRYPOINT ["/init"]
+ENTRYPOINT ["start-container"]
 HEALTHCHECK --start-period=120s --interval=20s --timeout=10s --retries=3 CMD healthcheck || exit 1
