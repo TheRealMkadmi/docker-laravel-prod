@@ -1,5 +1,5 @@
 #!/command/execlineb -P
 fdmove -c 2 1
 
-cd ${ROOT}
+cd /var/www/html
 php artisan schedule:work
