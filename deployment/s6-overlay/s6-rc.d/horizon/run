@@ -1,5 +1,5 @@
 #!/command/execlineb -P
 fdmove -c 2 1
-s6-setuidgid nobody
+
 cd ${ROOT}
 exec php artisan horizon
