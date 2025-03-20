@@ -1,6 +1,5 @@
-#!/usr/bin/with-contenv bash
-set -e
-
+#!/command/execlineb -P
+fdmove -c 2 1
+with-contenv
 cd /var/www/html
-echo "Clearing Laravel scheduler cache..."
 php artisan schedule:clear-cache
