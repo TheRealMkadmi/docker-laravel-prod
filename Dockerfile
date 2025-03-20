@@ -33,6 +33,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     COMPOSER_MAX_PARALLEL_HTTP=24 \
     LOG_CHANNEL=stack
 
+
+
 WORKDIR ${ROOT}
 SHELL ["/bin/bash", "-eou", "pipefail", "-c"]
 
@@ -50,11 +52,7 @@ RUN --mount=type=cache,target=/tmp/cache apt-get update \
       unzip \
       nodejs \
       npm \
-    && curl -sSL https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-noarch.tar.xz -o /tmp/s6-overlay-noarch.tar.xz \
-    && curl -sSL https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-x86_64.tar.xz -o /tmp/s6-overlay-x86_64.tar.xz \
-    && tar -C / -Jxpf /tmp/s6-overlay-noarch.tar.xz \
-    && tar -C / -Jxpf /tmp/s6-overlay-x86_64.tar.xz \
-    && rm /tmp/s6-overlay-noarch.tar.xz /tmp/s6-overlay-x86_64.tar.xz \
+      dos2unix \
     && ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime \
     && echo ${TZ} > /etc/timezone \
     && rm -rf /var/lib/apt/lists/* \
@@ -94,14 +92,25 @@ RUN --mount=type=cache,target=/tmp/cache apt-get update \
     && php -r "unlink('composer-setup.php');" \
     && mv composer.phar /usr/local/bin/composer
 
+
+ADD https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-noarch.tar.xz /tmp
+RUN tar -C / -Jxpf /tmp/s6-overlay-noarch.tar.xz
+
+ADD https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-x86_64.tar.xz /tmp
+RUN tar -C / -Jxpf /tmp/s6-overlay-x86_64.tar.xz
+
 # Copy configuration files
 COPY --link --chown=${WWWUSER}:${WWWUSER}             deployment/php.ini          ${PHP_INI_DIR}/conf.d/99-octane.ini
 COPY --link --chown=${WWWUSER}:${WWWUSER} --chmod=755 deployment/start-container  /usr/local/bin/start-container
 COPY --link --chown=${WWWUSER}:${WWWUSER} --chmod=755 deployment/healthcheck      /usr/local/bin/healthcheck
 COPY --link --chown=${WWWUSER}:${WWWUSER}             deployment/nginx.conf       /etc/nginx/sites-enabled/default
 COPY --link                               --chmod=755 deployment/s6-overlay/      /etc/s6-overlay/
+RUN for file in /etc/s6-overlay/*/*; do \
+  dos2unix $file; \
+  chmod a+xwr $file; \
+done
 
 EXPOSE 80
 
-ENTRYPOINT ["start-container"]
+ENTRYPOINT ["/init"]
 HEALTHCHECK --start-period=120s --interval=20s --timeout=10s --retries=3 CMD healthcheck || exit 1

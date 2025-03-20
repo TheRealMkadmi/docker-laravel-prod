@@ -1,5 +1,4 @@
-#!/usr/bin/with-contenv bash
-set -e
-
-echo "Starting Nginx server..."
+#!/command/execlineb -P
+fdmove -c 2 1
+s6-setuidgid nobody
 nginx -g "daemon off;"
