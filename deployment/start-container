@@ -27,7 +27,7 @@ initialStuff() {
         php artisan route:cache 2>&1 | while read line; do log "INFO" "$line"; done
         log "INFO" "Cache operations completed"
     fi
-
+    
     if [ "${running_migrations_and_seeders}" = "true" ]; then
         log "INFO" "Running migrations and seeding database..."
         php artisan migrate --isolated --seed --force 2>&1 | while read line; do log "INFO" "$line"; done
@@ -37,5 +37,6 @@ initialStuff() {
 
 # Always run initialization and s6 init
 initialStuff
+
 # Let s6 take over service management
 exec /init
