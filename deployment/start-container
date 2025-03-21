@@ -19,10 +19,6 @@ log "INFO" "Using artisan cache: $artisan_cache"
 initialStuff() {
     log "INFO" "Running initialization tasks..."
     
-    # Check PHP installation and display version
-    log "INFO" "PHP version check:"
-    php --version 2>&1 | while read line; do log "INFO" "$line"; done || log "WARN" "PHP version check failed"
-    
     if [ "${artisan_cache}" = "true" ]; then
         log "INFO" "Clearing and rebuilding cache..."
         php artisan optimize:clear 2>&1 | while read line; do log "INFO" "$line"; done
@@ -37,17 +33,6 @@ initialStuff() {
         php artisan migrate --isolated --seed --force 2>&1 | while read line; do log "INFO" "$line"; done
         log "INFO" "Database operations completed"
     fi
-    
-    # Check for storage directory permissions
-    for dir in storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache; do
-        if [ ! -d "$dir" ]; then
-            log "INFO" "Creating directory: $dir"
-            mkdir -p "$dir"
-        fi
-        log "INFO" "Setting permissions for $dir"
-        chmod -R 755 "$dir"
-        touch "$dir/.keep"
-    done
 }
 
 # Always run initialization and s6 init
