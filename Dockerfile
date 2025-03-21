@@ -116,6 +116,4 @@ done
 EXPOSE 80
 
 ENTRYPOINT ["start-container"]
-# Simple healthcheck that directly checks if Octane is running
-# This is compatible with Azure container probes which will check the container health status
-HEALTHCHECK --start-period=60s --interval=20s --timeout=20s --retries=5 CMD ["/usr/local/bin/healthcheck"]
+
