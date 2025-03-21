@@ -3,6 +3,8 @@
 ARG PHP_VERSION=8.4
 ARG APP_ENV
 ARG S6_OVERLAY_VERSION=3.2.0.2
+ARG OCTANE_WORKERS=4
+ARG OCTANE_TASK_WORKERS=6
 
 # Build the base image with PHP and system dependencies
 FROM ubuntu:22.04 AS base
@@ -13,6 +15,8 @@ ARG WWWUSER=1000
 ARG WWWGROUP=1000
 ARG TZ=UTC
 ARG S6_OVERLAY_VERSION
+ARG OCTANE_WORKERS
+ARG OCTANE_TASK_WORKERS
 
 # Define PHP ini directory (adjust if needed)
 ENV PHP_INI_DIR=/etc/php/${PHP_VERSION}/cli
@@ -26,6 +30,8 @@ ENV S6_KEEP_ENV=1 \
 ENV DEBIAN_FRONTEND=noninteractive \
     TERM=xterm-color \
     OCTANE_SERVER=swoole \
+    OCTANE_WORKERS=${OCTANE_WORKERS} \
+    OCTANE_TASK_WORKERS=${OCTANE_TASK_WORKERS} \
     TZ=${TZ} \
     USER=root \
     APP_ENV=${APP_ENV} \

@@ -1,8 +1,11 @@
 #!/bin/bash
 set -e
 
-# Simple health check script that only checks essential services
+# Enhanced health check script that checks Octane service and reports configuration
 # Checks if Laravel Octane (port 8000) is responding
+
+# Log health check information
+echo "Health check: Checking Octane (workers=${OCTANE_WORKERS}, task-workers=${OCTANE_TASK_WORKERS})"
 
 # Check if Octane is responding on port 8000
 if curl -s -f -o /dev/null http://localhost:8000/; then
