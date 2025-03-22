@@ -114,12 +114,14 @@ COPY --link --chown=${WWWUSER}:${WWWUSER} --chmod=755 deployment/start-container
 COPY --link --chown=${WWWUSER}:${WWWUSER} --chmod=755 deployment/healthcheck      /usr/local/bin/healthcheck
 COPY --link --chown=${WWWUSER}:${WWWUSER} --chmod=755 deployment/logger.sh        /usr/local/bin/logger.sh
 COPY --link --chown=${WWWUSER}:${WWWUSER} --chmod=755 deployment/utilities.sh     /usr/local/bin/utilities.sh
-COPY --link --chown=${WWWUSER}:${WWWUSER}             deployment/nginx.conf       /etc/nginx/sites-enabled/default
+COPY --link --chown=${WWWUSER}:${WWWUSER}             deployment/nginx.conf       /etc/nginx/nginx.conf
 COPY --link                               --chmod=755 deployment/s6-overlay/      /etc/s6-overlay/
 RUN for file in /etc/s6-overlay/*/*; do \
   dos2unix $file; \
   chmod a+xwr $file; \
 done
+
+RUN rm -rf /etc/nginx/sites-enabled/default
 
 EXPOSE 80
 

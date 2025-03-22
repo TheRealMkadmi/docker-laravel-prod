@@ -2,6 +2,17 @@
 fdmove -c 2 1
 with-contenv
 cd /var/www/html
-pipeline { php artisan octane:start --server=swoole --host=0.0.0.0 --port=8000 --workers=${OCTANE_WORKERS} --task-workers=${OCTANE_TASK_WORKERS} --max-requests=${OCTANE_MAX_REQUESTS} }
-/usr/local/bin/logger.sh OCTANE INFO
+
+# First evaluate and export environment variables
+importas -i OCTANE_WORKERS OCTANE_WORKERS
+importas -i OCTANE_TASK_WORKERS OCTANE_TASK_WORKERS
+importas -i OCTANE_MAX_REQUESTS OCTANE_MAX_REQUESTS
+
+# Export evaluated command for logging
+# Log the actual command with expanded variables
+expanded_cmd="php artisan octane:start --server=swoole --host=0.0.0.0 --port=8000 --workers=${OCTANE_WORKERS} --task-workers=${OCTANE_TASK_WORKERS} --max-requests=${OCTANE_MAX_REQUESTS}"
+/usr/local/bin/logger.sh OCTANE "${expanded_cmd}" 
+
+pipeline { $expanded_cmd } /usr/local/bin/logger.sh OCTANE
+
 

@@ -2,5 +2,10 @@
 fdmove -c 2 1
 with-contenv
 cd /var/www/html
-pipeline { php artisan schedule:work }
-/usr/local/bin/logger.sh SCHEDULER INFO
+
+# Log the actual command with expanded variables
+expanded_cmd="php artisan schedule:work"
+/usr/local/bin/logger.sh SCHEDULER "${expanded_cmd}"
+
+# Execute the command
+pipeline { $expanded_cmd } /usr/local/bin/logger.sh SCHEDULER

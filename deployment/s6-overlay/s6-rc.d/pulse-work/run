@@ -2,5 +2,10 @@
 fdmove -c 2 1
 with-contenv
 cd /var/www/html
-pipeline { php artisan pulse:work }
-/usr/local/bin/logger.sh PULSE-WORK INFO
+
+# Log the actual command with expanded variables
+expanded_cmd="php artisan pulse:work"
+/usr/local/bin/logger.sh PULSE-WORK "${expanded_cmd}"
+
+# Execute the command
+pipeline { $expanded_cmd } /usr/local/bin/logger.sh PULSE-WORK

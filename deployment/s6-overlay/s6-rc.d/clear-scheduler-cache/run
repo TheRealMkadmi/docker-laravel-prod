@@ -3,4 +3,4 @@ fdmove -c 2 1
 with-contenv
 cd /var/www/html
 pipeline { php artisan schedule:clear-cache }
-/usr/local/bin/logger.sh SCHEDULER-CACHE INFO
+/usr/local/bin/logger.sh SCHEDULER-CACHE "${BASH_LINENO[0]}"

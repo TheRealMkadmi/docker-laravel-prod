@@ -1,44 +1,68 @@
 #!/bin/bash
 # Enhanced logging utility for Docker container
-# Prepends process name and log level to all log messages
-
+# Prepends process name to all log messages
 # Usage: 
-# logger.sh [process_name] [log_level] "message"
-# Example: logger.sh NGINX INFO "Server started"
+# logger.sh [process_name] "message"
+# Example: logger.sh NGINX "Server started"
 
 log_with_metadata() {
     local process="$1"
-    local level="$2"
     local timestamp=$(date +'%Y-%m-%d %H:%M:%S')
     
     # Read from stdin if no message provided as argument
-    if [ -z "$3" ]; then
+    if [ -z "$2" ]; then
         while IFS= read -r line; do
             # Skip empty lines
             if [ -n "$line" ]; then
-                echo "$timestamp [$process] [$level] $line"
+                echo "$timestamp $line"
             fi
         done
     else
-        echo "$timestamp [$process] [$level] $3"
+        echo "$timestamp [$process] $2"
     fi
 }
 
-# Main function - takes process name, level and optional message
+# Function to log command execution details
+log_command() {
+    local process="$1"
+    shift 1
+    local cmd="$@"
+    local timestamp=$(date +'%Y-%m-%d %H:%M:%S')
+    
+    # Evaluate the command string to expand variables
+    local expanded_cmd=$(eval echo "$cmd")
+    
+    # Log the command with variables expanded
+    echo "$timestamp Executing command: $expanded_cmd"
+    echo "$timestamp Concrete command: $expanded_cmd"
+    
+    # Execute the command and capture output
+    eval "$cmd" | while IFS= read -r line; do
+        if [ -n "$line" ]; then
+            echo "$timestamp $line"
+        fi
+    done
+}
+
+# Main function - takes process name and optional message
 # If message is not provided, it reads from stdin
-if [ "$#" -lt 2 ]; then
-    echo "Usage: $0 <process_name> <log_level> [message]" >&2
+if [[ "$1" == "COMMAND" ]]; then
+    # Special mode for logging commands
+    PROCESS_NAME="$2"
+    shift 2
+    log_command "$PROCESS_NAME" "$@"
+elif [ "$#" -lt 1 ]; then
+    echo "Usage: $0 <process_name> [message]" >&2
+    echo "   or: $0 COMMAND <process_name> command [args...]" >&2
     exit 1
-fi
-
-PROCESS_NAME="$1"
-LOG_LEVEL="$2"
-MESSAGE="$3"
-
-# If message is provided as argument, log it directly
-if [ -n "$MESSAGE" ]; then
-    log_with_metadata "$PROCESS_NAME" "$LOG_LEVEL" "$MESSAGE"
 else
-    # Otherwise process stdin
-    log_with_metadata "$PROCESS_NAME" "$LOG_LEVEL"
+    PROCESS_NAME="$1"
+    MESSAGE="$2"
+    # If message is provided as argument, log it directly
+    if [ -n "$MESSAGE" ]; then
+        log_with_metadata "$PROCESS_NAME" "$MESSAGE"
+    else
+        # Otherwise process stdin
+        log_with_metadata "$PROCESS_NAME"
+    fi
 fi

@@ -8,30 +8,30 @@ artisan_cache=${ARTISAN_CACHE:-"true"}
 
 # Log startup information with enhanced logging
 log() {
-    /usr/local/bin/logger.sh CONTAINER "$1" "$2"
+    /usr/local/bin/logger.sh CONTAINER "${BASH_LINENO[0]}"
 }
 
 # Log startup information
-log "INFO" "Starting container in $container_mode mode"
-log "INFO" "Running migrations and seeders: $running_migrations_and_seeders"
-log "INFO" "Using artisan cache: $artisan_cache"
+log "Starting container in $container_mode mode"
+log "Running migrations and seeders: $running_migrations_and_seeders"
+log "Using artisan cache: $artisan_cache"
 
 initialStuff() {
-    log "INFO" "Running initialization tasks..."
+    log "Running initialization tasks..."
     
     if [ "${artisan_cache}" = "true" ]; then
-        log "INFO" "Clearing and rebuilding cache..."
-        php artisan optimize:clear 2>&1 | while read line; do log "INFO" "$line"; done
-        php artisan event:cache 2>&1 | while read line; do log "INFO" "$line"; done
-        php artisan config:cache 2>&1 | while read line; do log "INFO" "$line"; done
-        php artisan route:cache 2>&1 | while read line; do log "INFO" "$line"; done
-        log "INFO" "Cache operations completed"
+        log "Clearing and rebuilding cache..."
+        php artisan optimize:clear 2>&1 | while read line; do log "$line"; done
+        php artisan event:cache 2>&1 | while read line; do log "$line"; done
+        php artisan config:cache 2>&1 | while read line; do log "$line"; done
+        php artisan route:cache 2>&1 | while read line; do log "$line"; done
+        log "Cache operations completed"
     fi
     
     if [ "${running_migrations_and_seeders}" = "true" ]; then
-        log "INFO" "Running migrations and seeding database..."
-        php artisan migrate --isolated --seed --force 2>&1 | while read line; do log "INFO" "$line"; done
-        log "INFO" "Database operations completed"
+        log "Running migrations and seeding database..."
+        php artisan migrate --isolated --seed --force 2>&1 | while read line; do log "$line"; done
+        log "Database operations completed"
     fi
 }
 

@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "*" # Match all tags
 
 jobs:
   build-and-deploy:
@@ -33,6 +35,7 @@ jobs:
         tags: |
           ${{ secrets.DOCKERHUB_USERNAME }}/laravel-octane-stack:latest
           ${{ secrets.DOCKERHUB_USERNAME }}/laravel-octane-stack:${{ github.sha }}
+          ${{ secrets.DOCKERHUB_USERNAME }}/laravel-octane-stack:${{ github.ref_name }} # Add tag from pushed tag
         cache-from: |
           type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/laravel-octane-stack:latest
         cache-to: type=inline

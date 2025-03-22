@@ -2,5 +2,10 @@
 fdmove -c 2 1
 with-contenv
 cd /var/www/html
-pipeline { php artisan horizon }
-/usr/local/bin/logger.sh HORIZON INFO
+
+# Log the actual command with expanded variables
+expanded_cmd="php artisan horizon"
+/usr/local/bin/logger.sh HORIZON "${expanded_cmd}"
+
+# Execute the command
+pipeline { $expanded_cmd } /usr/local/bin/logger.sh HORIZON

@@ -6,76 +6,75 @@ set -e
 
 # Log with timestamp and category using our standardized logger
 log() {
-  local level="$1"
-  local message="$2"
-  /usr/local/bin/logger.sh UTILITIES "$level" "$message"
+  local message="$1"
+  /usr/local/bin/logger.sh UTILITIES "${BASH_LINENO[0]}"
 }
 
 # Ensure required directories exist
 ensure_dirs() {
-  log "INFO" "Ensuring required directories exist"
+  log "Ensuring required directories exist"
   
   # Create directories for logs and socket files
   for dir in /tmp/nginx_logs; do
     if [ ! -d "$dir" ]; then
-      log "INFO" "Creating directory: $dir"
+      log "Creating directory: $dir"
       mkdir -p "$dir"
       chmod -R 755 "$dir"
     fi
   done
   
   # Create log files if they don't exist
-  touch /tmp/error_502_history.log 2>/dev/null || log "WARN" "Could not create error history log"
+  touch /tmp/error_502_history.log 2>/dev/null || log "Could not create error history log"
   
-  log "INFO" "Directory check complete"
+  log "Directory check complete"
 }
 
 # Monitor and log 502 errors by checking Nginx access logs
 monitor_502_errors() {
-  log "INFO" "Starting 502 error monitoring..."
+  log "Starting 502 error monitoring..."
   
   # Ensure directories exist first
   ensure_dirs
   
   # Simple grep for 502 errors in nginx logs
   tail -f /dev/stdout | grep --line-buffered -i '502' | while read -r line; do
-    log "ERROR" "502 Bad Gateway detected"
-    log "DEBUG" "Access log entry: $line"
+    log "502 Bad Gateway detected"
+    log "Access log entry: $line"
     
     # Capture current state for diagnostics
-    log "DEBUG" "Capturing system state..."
+    log "Capturing system state..."
     
     # Process state
-    log "DEBUG" "=== Process Status ==="
+    log "=== Process Status ==="
     ps aux | grep -E 'nginx|php|swoole|supervis' | grep -v grep | while read -r pline; do
-      log "DEBUG" "$pline"
+      log "$pline"
     done
     
     # Socket state
-    log "DEBUG" "=== Socket Status ==="
+    log "=== Socket Status ==="
     netstat -tunlp | grep -E '80|8000' | while read -r sline; do
-      log "DEBUG" "$sline"
+      log "$sline"
     done
     
     # Supervisor status
-    log "DEBUG" "=== Supervisor Status ==="
+    log "=== Supervisor Status ==="
     supervisorctl status all 2>&1 | while read -r sstatus; do
-      log "DEBUG" "$sstatus"
-    done || log "ERROR" "Failed to get supervisor status"
+      log "$sstatus"
+    done || log "Failed to get supervisor status"
     
     # Recent logs
-    log "DEBUG" "=== Recent Octane Errors ==="
+    log "=== Recent Octane Errors ==="
     supervisorctl tail octane stderr 100 2>/dev/null | grep -i 'error\|exception\|fatal' | tail -20 | while read -r oline; do 
-      log "DEBUG" "$oline"
-    done || log "WARN" "Could not retrieve octane errors"
+      log "$oline"
+    done || log "Could not retrieve octane errors"
     
     # Memory usage
-    log "DEBUG" "=== Memory Status ==="
+    log "=== Memory Status ==="
     free -m | while read -r mline; do
-      log "DEBUG" "$mline"
+      log "$mline"
     done
     
-    log "INFO" "Diagnostics captured for 502 error"
+    log "Diagnostics captured for 502 error"
     
     # Add to 502 error history for trend analysis
     echo "$(date +'%s') 502" >> /tmp/error_502_history.log
@@ -84,25 +83,25 @@ monitor_502_errors() {
 
 # Check if Octane is running and responding
 check_octane() {
-  log "INFO" "Checking Octane status..."
+  log "Checking Octane status..."
   
   # Direct request to Octane
   HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/ 2>/dev/null || echo "Connection failed")
   
   if [ "$HTTP_CODE" = "200" ]; then
-    log "INFO" "Octane is responding correctly (HTTP 200)"
+    log "Octane is responding correctly (HTTP 200)"
     return 0
   else
-    log "ERROR" "Octane returned HTTP $HTTP_CODE"
+    log "Octane returned HTTP $HTTP_CODE"
     
     # Check process
     if pgrep -f "php.*octane:start" > /dev/null; then
-      log "DEBUG" "Octane process exists but is not responding correctly"
+      log "Octane process exists but is not responding correctly"
       ps aux | grep -f "php.*octane:start" | grep -v grep | while read -r line; do
-        log "DEBUG" "$line"
+        log "$line"
       done
     else
-      log "ERROR" "No Octane process found"
+      log "No Octane process found"
     fi
     
     return 1
@@ -111,36 +110,36 @@ check_octane() {
 
 # Recover from specific error conditions
 recover_from_errors() {
-  log "INFO" "Running error recovery procedures..."
+  log "Running error recovery procedures..."
   
   # Ensure directories exist
   ensure_dirs
   
   # Check for common error patterns
   if ! check_octane; then
-    log "WARN" "Attempting to restart Octane..."
+    log "Attempting to restart Octane..."
     supervisorctl restart octane 2>&1 | while read -r line; do
-      log "INFO" "$line"
+      log "$line"
     done || {
-      log "ERROR" "Failed to restart Octane via supervisorctl"
+      log "Failed to restart Octane via supervisorctl"
       return 1
     }
     
     sleep 5
     
     if check_octane; then
-      log "INFO" "Octane successfully restarted"
+      log "Octane successfully restarted"
     else
-      log "ERROR" "Octane restart failed, check application logs"
+      log "Octane restart failed, check application logs"
     fi
   fi
   
   # Check Nginx
   if ! pgrep -x "nginx" > /dev/null; then
-    log "WARN" "Nginx not found, attempting restart..."
+    log "Nginx not found, attempting restart..."
     supervisorctl restart nginx 2>&1 | while read -r line; do
-      log "INFO" "$line"
-    done || log "ERROR" "Failed to restart nginx"
+      log "$line"
+    done || log "Failed to restart nginx"
     sleep 2
   fi
 }
@@ -161,7 +160,7 @@ main() {
       ensure_dirs
       ;;
     *)
-      log "INFO" "Usage: $0 {monitor|check|recover|ensure_dirs}"
+      log "Usage: $0 {monitor|check|recover|ensure_dirs}"
       exit 1
       ;;
   esac
