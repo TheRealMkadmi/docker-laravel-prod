@@ -1,10 +1,11 @@
 #!/command/execlineb -P
 fdmove -c 2 1
 with-contenv
+cd /var/www/html
 
-# Log the actual command with expanded variables
-expanded_cmd="nginx -g \"daemon off;\""
-/usr/local/bin/logger.sh NGINX "${expanded_cmd}"
+# Log the command
+/usr/local/bin/logger.sh NGINX "Starting Nginx server"
 
-# Execute the command
-pipeline { $expanded_cmd } /usr/local/bin/logger.sh NGINX
+# Execute the command and pipe all output to logger
+pipeline { nginx -g "daemon off;" }
+/usr/local/bin/logger.sh NGINX

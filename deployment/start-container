@@ -8,7 +8,8 @@ artisan_cache=${ARTISAN_CACHE:-"true"}
 
 # Log startup information with enhanced logging
 log() {
-    /usr/local/bin/logger.sh CONTAINER "${BASH_LINENO[0]}"
+    local message="$1"
+    /usr/local/bin/logger.sh CONTAINER "$message"
 }
 
 # Log startup information
@@ -21,16 +22,16 @@ initialStuff() {
     
     if [ "${artisan_cache}" = "true" ]; then
         log "Clearing and rebuilding cache..."
-        php artisan optimize:clear 2>&1 | while read line; do log "$line"; done
-        php artisan event:cache 2>&1 | while read line; do log "$line"; done
-        php artisan config:cache 2>&1 | while read line; do log "$line"; done
-        php artisan route:cache 2>&1 | while read line; do log "$line"; done
+        php artisan optimize:clear 2>&1 | while read -r line; do log "$line"; done
+        php artisan event:cache 2>&1 | while read -r line; do log "$line"; done
+        php artisan config:cache 2>&1 | while read -r line; do log "$line"; done
+        php artisan route:cache 2>&1 | while read -r line; do log "$line"; done
         log "Cache operations completed"
     fi
     
     if [ "${running_migrations_and_seeders}" = "true" ]; then
         log "Running migrations and seeding database..."
-        php artisan migrate --isolated --seed --force 2>&1 | while read line; do log "$line"; done
+        php artisan migrate --isolated --seed --force 2>&1 | while read -r line; do log "$line"; done
         log "Database operations completed"
     fi
 }

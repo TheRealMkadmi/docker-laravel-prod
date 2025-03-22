@@ -2,5 +2,10 @@
 fdmove -c 2 1
 with-contenv
 cd /var/www/html
+
+# Log the command
+/usr/local/bin/logger.sh SCHEDULER-CACHE "Clearing Laravel scheduler cache"
+
+# Execute the command and pipe all output to logger
 pipeline { php artisan schedule:clear-cache }
-/usr/local/bin/logger.sh SCHEDULER-CACHE "${BASH_LINENO[0]}"
+/usr/local/bin/logger.sh SCHEDULER-CACHE
