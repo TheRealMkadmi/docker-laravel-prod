@@ -14,7 +14,7 @@ log_with_metadata() {
         while IFS= read -r line; do
             # Skip empty lines
             if [ -n "$line" ]; then
-                echo "$timestamp $line"
+                echo "$timestamp [$process] $line"
             fi
         done
     else
@@ -32,16 +32,10 @@ log_command() {
     # Evaluate the command string to expand variables
     local expanded_cmd=$(eval echo "$cmd")
     
-    # Log the command with variables expanded
-    echo "$timestamp Executing command: $expanded_cmd"
-    echo "$timestamp Concrete command: $expanded_cmd"
-    
     # Execute the command and capture output
-    eval "$cmd" | while IFS= read -r line; do
-        if [ -n "$line" ]; then
-            echo "$timestamp $line"
-        fi
-    done
+    echo "$timestamp [$process] Executing command: $expanded_cmd"
+    export LAUNCHED_BY_LOGGER=1
+    exec bash -c "$cmd"
 }
 
 # Main function - takes process name and optional message

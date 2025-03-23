@@ -1,11 +1,13 @@
-#!/command/execlineb -P
+#!/command/execlineb
 fdmove -c 2 1
 with-contenv
 cd /var/www/html
 
-# Log the command
-/usr/local/bin/logger.sh PULSE-CHECK "Starting Laravel Pulse check service"
-
-# Execute the command and pipe all output to logger
-pipeline { php artisan pulse:check }
-/usr/local/bin/logger.sh PULSE-CHECK
+# Execute the Laravel Pulse check service using pipeline and foreground for centralized logging
+foreground {
+    pipeline {
+        php artisan pulse:check
+    } 
+    /usr/local/bin/logger.sh 
+    PULSE-CHECK
+}

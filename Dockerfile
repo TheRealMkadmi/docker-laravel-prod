@@ -45,7 +45,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     LOG_CHANNEL=stack
 
 WORKDIR ${ROOT}
-SHELL ["/bin/bash", "-eou", "pipefail", "-c"]
+SHELL ["/bin/bash", "-c"]
+## Note: To enforce strict error handling, prefix your RUN commands with 'set -eo pipefail' as needed.
 
 # Install packages and S6-overlay in a single layer to reduce image size
 RUN --mount=type=cache,target=/tmp/cache apt-get update \ 

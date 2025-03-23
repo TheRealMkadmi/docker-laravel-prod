@@ -1,11 +1,7 @@
-#!/command/execlineb -P
+#!/command/execlineb
 fdmove -c 2 1
 with-contenv
 cd /var/www/html
 
-# Log the command
-/usr/local/bin/logger.sh NGINX "Starting Nginx server"
-
 # Execute the command and pipe all output to logger
-pipeline { nginx -g "daemon off;" }
-/usr/local/bin/logger.sh NGINX
+pipeline { nginx } /usr/local/bin/logger.sh NGINX

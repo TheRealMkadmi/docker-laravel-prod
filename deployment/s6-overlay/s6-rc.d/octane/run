@@ -8,17 +8,12 @@ importas -i OCTANE_WORKERS OCTANE_WORKERS
 importas -i OCTANE_TASK_WORKERS OCTANE_TASK_WORKERS
 importas -i OCTANE_MAX_REQUESTS OCTANE_MAX_REQUESTS
 
-# Log the command with explicit variable values
-/usr/local/bin/logger.sh OCTANE "Starting Octane with workers=${OCTANE_WORKERS}, task-workers=${OCTANE_TASK_WORKERS}, max-requests=${OCTANE_MAX_REQUESTS}"
-
-# Execute the command and pipe all output to logger
-pipeline {
-  php artisan octane:start --server=swoole --host=0.0.0.0 --port=8000 \
-    --workers=${OCTANE_WORKERS} \
-    --task-workers=${OCTANE_TASK_WORKERS} \
-    --max-requests=${OCTANE_MAX_REQUESTS}
-  /usr/local/bin/logger.sh OCTANE
+# Execute the Laravel Octane server with continuous logging using pipeline
+foreground {
+    pipeline { 
+        php artisan octane:start --server=swoole --host=0.0.0.0 --port=8000 --workers=${OCTANE_WORKERS} --task-workers=${OCTANE_TASK_WORKERS} --max-requests=${OCTANE_MAX_REQUESTS} 
+    } 
+    /usr/local/bin/logger.sh 
+    OCTANE
 }
-
-
 

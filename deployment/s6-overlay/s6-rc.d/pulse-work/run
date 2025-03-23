@@ -1,11 +1,13 @@
-#!/command/execlineb -P
+#!/command/execlineb
 fdmove -c 2 1
 with-contenv
 cd /var/www/html
 
-# Log the command
-/usr/local/bin/logger.sh PULSE-WORK "Starting Laravel Pulse worker"
-
-# Execute the command and pipe all output to logger
-pipeline { php artisan pulse:work }
-/usr/local/bin/logger.sh PULSE-WORK
+# Execute the Laravel Pulse worker process using pipeline and foreground for centralized logging
+foreground {
+    pipeline {
+        php artisan pulse:work
+    }
+    /usr/local/bin/logger.sh 
+    PULSE-WORK
+}
