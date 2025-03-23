@@ -26,16 +26,27 @@ jobs:
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_PASSWORD }}
+        
+    - name: Extract metadata for Docker
+      id: meta
+      run: |
+        # Always set these tags
+        TAGS="${{ secrets.DOCKERHUB_USERNAME }}/laravel-octane-stack:latest,${{ secrets.DOCKERHUB_USERNAME }}/laravel-octane-stack:${{ github.sha }}"
+        
+        # Add tag if the event is a tag push
+        if [[ $GITHUB_REF == refs/tags/* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/}
+          TAGS="$TAGS,${{ secrets.DOCKERHUB_USERNAME }}/laravel-octane-stack:$VERSION"
+        fi
+        
+        echo "tags=${TAGS}" >> $GITHUB_OUTPUT
 
     - name: Build and Push Docker Image
       uses: docker/build-push-action@v4
       with:
         context: .
         push: true
-        tags: |
-          ${{ secrets.DOCKERHUB_USERNAME }}/laravel-octane-stack:latest
-          ${{ secrets.DOCKERHUB_USERNAME }}/laravel-octane-stack:${{ github.sha }}
-          ${{ secrets.DOCKERHUB_USERNAME }}/laravel-octane-stack:${{ github.ref_name }} # Add tag from pushed tag
+        tags: ${{ steps.meta.outputs.tags }}
         cache-from: |
           type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/laravel-octane-stack:latest
         cache-to: type=inline
