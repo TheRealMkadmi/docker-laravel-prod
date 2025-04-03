@@ -6,6 +6,7 @@ ARG S6_OVERLAY_VERSION=3.2.0.2
 ARG OCTANE_WORKERS=8
 ARG OCTANE_TASK_WORKERS=16
 ARG OCTANE_MAX_REQUESTS=1000
+ARG CACHE_ASSETS=false
 
 # Build the base image with PHP and system dependencies
 FROM ubuntu:22.04 AS base
@@ -19,6 +20,7 @@ ARG S6_OVERLAY_VERSION
 ARG OCTANE_WORKERS
 ARG OCTANE_TASK_WORKERS
 ARG OCTANE_MAX_REQUESTS
+ARG CACHE_ASSETS
 
 # Define PHP ini directory (adjust if needed)
 ENV PHP_INI_DIR=/etc/php/${PHP_VERSION}/cli
@@ -42,7 +44,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     ROOT=/var/www/html \
     COMPOSER_FUND=0 \
     COMPOSER_MAX_PARALLEL_HTTP=24 \
-    LOG_CHANNEL=stack
+    LOG_CHANNEL=stack \
+    CACHE_ASSETS=${CACHE_ASSETS}
 
 WORKDIR ${ROOT}
 SHELL ["/bin/bash", "-c"]
